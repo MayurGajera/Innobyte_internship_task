@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .form-container {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="form-container shadow">
+            <h1 class="text-center">Login</h1>
+            <form id="registerForm" action="/api/login" method="POST" novalidate>
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                    <div class="invalid-feedback">Valid Email is required.</div>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                    <div class="invalid-feedback">
+                        Password must be at least 8 characters long, contain at least one uppercase letter, one
+                        lowercase letter, one number, and one special character.
+                    </div>
+                </div>
+                <% if(error){ %>
+                    <div id="myAlert" class="alert alert-danger" role="alert">
+                        <%= error %>
+                    </div>
+                    <% } %>
+                        <button type="submit" class="btn btn-primary btn-block">Login</button>
+            </form>
+            <p>If you do not have an account, please <a href="/">register</a>.</p>
+
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- Client-side validation -->
+    <script>
+        // Wait for the DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function () {
+            // Select the alert element
+            var alert = document.getElementById('myAlert');
+
+            // Use setTimeout to hide the alert after 5 seconds
+            setTimeout(function () {
+                alert.style.display = 'none';
+            }, 2000); // 5000 milliseconds = 5 seconds
+        });
+
+        (function () {
+            'use strict';
+            window.addEventListener('load', function () {
+                // Fetch the form element
+                var form = document.getElementById('registerForm');
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    // Check password length manually
+                    var password = document.getElementById('password');
+                    var passwordValue = password.value;
+                    var passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+                    if (!passwordRegex.test(passwordValue)) {
+                        password.setCustomValidity('Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character.');
+                        password.classList.add('is-invalid');
+                        event.preventDefault(); // Prevent form submission
+                    } else {
+                        password.setCustomValidity('');
+                        password.classList.remove('is-invalid');
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            }, false);
+        })();
+    </script>
+</body>
+
+</html>
