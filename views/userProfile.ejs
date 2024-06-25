@@ -20,11 +20,7 @@
         <div class="collapse navbar-collapse">
             <ul class="navbar-nav ml-auto">
                 <li class="nav-item">
-                    <form action="/api/logout" method="post">
-                        <!-- Optional CSRF token if your backend requires CSRF protection -->
-                        <!-- Replace with your actual CSRF token handling -->
-                        <input type="hidden" name="_csrf" value="your_csrf_token_here">
-
+                    <form id="logoutForm">
                         <button type="submit" class="nav-link text-primary"
                             style="background:none; border:none;">Logout</button>
                     </form>
@@ -190,8 +186,6 @@
                     // Parse response body as JSON
                     return response.json();
                 }).then(data => {
-                    // Handle successful response data here
-                    console.log('Success:', data);
 
                     // Example: Set data into cookie and update user profile UI
                     document.cookie = `user=${JSON.stringify(data.user)}; path=/`;
@@ -254,8 +248,6 @@
                         // Parse response body as JSON
                         return response.json();
                     }).then(data => {
-                        // Handle successful response data here
-                        console.log('Success:', data);
                         // Update the content of the alert with the received message
                         $('#myAlert').removeClass('d-none').addClass('alert-danger').text(data.message);
 
@@ -274,6 +266,32 @@
                 }
                 $(this).addClass('was-validated');
             });
+
+
+            const logoutForm = document.getElementById('logoutForm');
+
+            logoutForm.addEventListener('submit', async (event) => {
+                event.preventDefault(); // Prevent default form submission
+
+                try {
+                    const response = await fetch('/api/logout', {
+                        method: 'POST',
+                        credentials: 'same-origin' // Ensures cookies are sent along with the request
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Logout failed');
+                    }
+
+                    // Redirect to login page or handle success as needed
+                    window.location.href = '/api/login'; // Redirect to login page
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    // Handle error (e.g., display an error message)
+                }
+            });
+
+
         });
     </script>
 </body>

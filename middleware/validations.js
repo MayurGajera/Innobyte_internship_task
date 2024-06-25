@@ -2,6 +2,7 @@
 const Validator = require('Validator')
 const jwt = require('jsonwebtoken')
 const validations = {
+    // Check validation for requests
     checkValidationRules: function (req, res, rules, messages) {
         var v = Validator.make(req, rules, messages)
         if (v.fails()) {
@@ -21,14 +22,12 @@ const validations = {
         }
     },
 
-
     // Middleware to verify JWT
     verifyToken: function (req, res, next) {
-        // console.log('first', req.cookies)
         const token = req.cookies.token;
 
         if (!token)
-            res.redirect('/login')
+            res.redirect('/api/login')
         try {
             const verified = jwt.verify(token, process.env.JWTSECRETKEY);
             if (verified.user.is_verified == false) {
@@ -40,6 +39,8 @@ const validations = {
             res.status(400).json({ message: 'Invalid Token' });
         }
     }
+
+
 }
 
 module.exports = validations

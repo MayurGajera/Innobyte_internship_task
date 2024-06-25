@@ -1,16 +1,25 @@
-const swaggerAutogen = require('swagger-autogen')();
+const swaggerJSDoc = require('swagger-jsdoc');
 
-const doc = {
+const swaggerDefinition = {
+    openapi: '3.0.0',
     info: {
-        title: 'Nodejs + Mngodb API',
-        description: 'Description'
+        title: 'User Registration API',
+        version: '1.0.0',
+        description: 'API for registering users and sending email verification.',
     },
-    host: 'localhost:4040'
+    servers: [
+        {
+            url: 'http://localhost:4040', // Replace with your actual server URL
+            description: 'Development server',
+        },
+    ],
 };
 
-const outputFile = './swagger-output.json';
-const routes = ['./index.js'];
+const options = {
+    swaggerDefinition,
+    apis: ['./routes/*.js'],
+};
 
-swaggerAutogen(outputFile, routes, doc).then(() => {
-    require('./index.js');
-});
+const swaggerSpec = swaggerJSDoc(options);
+
+module.exports = swaggerSpec;

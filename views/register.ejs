@@ -20,9 +20,16 @@
 
 <body>
     <div class="container">
-        <div class="form-container shadow">
-            <h1 class="text-center">Register</h1>
-            <form id="registerForm" action="/api/register" method="POST" novalidate>
+        <center>
+            <div id="suucessMsg" class="col-md-12 border rounded shadow mt-3 d-none">
+
+            </div>
+        </center>
+        <div id="myAlert" class="alert alert-danger d-none mt-2" role="alert">
+        </div>
+        <div class="form-container shadow" id="signupformContainer">
+            <h1 class="text-center">Signup</h1>
+            <form id="signupForm" novalidate>
                 <div class="form-group">
                     <label for="firstName">First Name:</label>
                     <input type="text" class="form-control" id="firstName" name="firstName" required>
@@ -46,14 +53,10 @@
                         lowercase letter, one number, and one special character.
                     </div>
                 </div>
-                <% if(error){ %>
-                    <div id="myAlert" class="alert alert-danger" role="alert">
-                        <%= error %>
-                    </div>
-                    <% } %>
-                        <button type="submit" class="btn btn-primary btn-block">Register</button>
+
+                <button type="submit" class="btn btn-primary btn-block">Signup</button>
             </form>
-            <p>If you have an account, please <a href="/login">login</a>.</p>
+            <p>If you have an account, please <a href="/api/login">Login</a>.</p>
         </div>
     </div>
 
@@ -63,17 +66,50 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <!-- Client-side validation -->
     <script>
+        document.getElementById('signupForm').addEventListener('submit', function (event) {
+            event.preventDefault();
 
+            // Construct FormData object from form data
+            const formData = new FormData(document.getElementById('signupForm'));
 
-        // Wait for the DOM to be fully loaded
-        document.addEventListener('DOMContentLoaded', function () {
-            // Select the alert element
-            var alert = document.getElementById('myAlert');
+            // Create an object from formData entries
+            const formDataObject = {};
+            for (const [key, value] of formData.entries()) {
+                formDataObject[key] = value;
+            }
 
-            // Use setTimeout to hide the alert after 5 seconds
-            setTimeout(function () {
-                alert.style.display = 'none';
-            }, 2000); // 5000 milliseconds = 5 seconds
+            // Make POST request to /api/signup endpoint
+            fetch('/api/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formDataObject)
+            })
+                .then(response => {
+                    return response.json(); // assuming server responds with text
+                })
+                .then(data => {
+
+                    if (data.code != 1) {
+
+                        // Display success message or handle response data
+                        $('#myAlert').removeClass('d-none').addClass('alert-danger').text(data.message);
+
+                        // Show the alert for 2 seconds
+                        setTimeout(function () {
+                            $('#myAlert').addClass('d-none').removeClass('alert-danger').text('');
+                        }, 5000);
+                    } else {
+                        $('#signupformContainer').addClass('d-none');
+                        $('#suucessMsg').removeClass('d-none').addClass('alert-danger').html(`<h2>${data.message}</h2>`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Handle error scenario, e.g., show error message to user
+                    alert('Error registering user. Please try again later.');
+                });
         });
 
 
@@ -81,7 +117,7 @@
             'use strict';
             window.addEventListener('load', function () {
                 // Fetch the form element
-                var form = document.getElementById('registerForm');
+                var form = document.getElementById('signupForm');
                 form.addEventListener('submit', function (event) {
                     if (!form.checkValidity()) {
                         event.preventDefault();

@@ -11,8 +11,8 @@ const path = require('path');
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: 'mayurghyperlink3336@gmail.com',
-        pass: 'ifvsrwgndffculzt'
+        user: process.env.EMAIL,
+        pass: process.env.PASS
     }
 });
 
@@ -22,12 +22,11 @@ async function sendConfirmationEmail(user) {
 
     // Render the EJS template
     const emailTemplatePath = path.join(__dirname, '..', 'views', 'confirmationEmail.ejs');
-    console.log("mailOptions", emailTemplatePath)
     const emailHtml = await ejs.renderFile(emailTemplatePath, { firstName, confirmationUrl });
 
     // Email options
     const mailOptions = {
-        from: 'mayurghyperlink3336@gmail.com',
+        from: process.env.EMAIL,
         to: email,
         subject: 'Please confirm your email address',
         html: emailHtml
@@ -44,7 +43,7 @@ async function sendConfirmationEmail(user) {
 }
 
 
-router.post('/register', async (req, res) => {
+router.post('/signup', async (req, res) => {
     try {
         const { firstName, lastName, email, password } = req.body;
         // Define validation rules
@@ -70,7 +69,7 @@ router.post('/register', async (req, res) => {
 
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            return res.render('register', { message: 'User with given email already exists' });
+            return res.status(400).json({ code: 0, message: 'User with given email already exists' });
 
         }
         const salt = await bcrypt.genSalt(Number(10));
@@ -83,18 +82,15 @@ router.post('/register', async (req, res) => {
             password: hashPassword
         });
         await newUser.save();
-
         const token = jwt.sign({ user: newUser }, process.env.JWTSECRETKEY, { expiresIn: '1h' })
-
         // Generate confirmation URL
         const confirmationUrl = `http://localhost:4040/api/verify-email?token=${token}`;
         // Send confirmation email
         await sendConfirmationEmail({ firstName, email, confirmationUrl });
-        res.render('message', { message: 'Registration successful! Please check your email to verify your account.' });
+        res.status(200).json({ code: 1, message: 'Registration successful! Please check your email to verify your account.' });
 
     } catch (error) {
-        return res.render('register', { message: 'Internal server error' });
-
+        return res.status(500).json({ code: 0, message: 'Internal server error' });
     }
 })
 
@@ -113,24 +109,20 @@ router.post('/login', async (req, res) => {
         }
         const existingUser = await User.findOne({ email: email })
         if (!existingUser) {
-            return res.render('login', { error: 'Invalid Email' });
-
+            return res.status(400).json({ code: 0, message: 'Invalid Email' });
         }
         const validPassword = await bcrypt.compare(
             password, existingUser.password
         )
         if (!validPassword) {
-            return res.render('login', { error: 'Invalid Password' });
-
+            return res.status(400).json({ code: 0, message: 'Invalid Password' });
         }
         const token = jwt.sign({ user: existingUser }, process.env.JWTSECRETKEY, { expiresIn: '1h' })
-        // const decoded = jwt.verify(token, process.env.JWTSECRETKEY);
         res.cookie('token', token, { httpOnly: true });
-        res.redirect('/api/profile');
-        // res.render('userProfile', { user: decoded.user });
+        res.status(200).json({ code: 1, message: 'User log-in successfully' })
 
     } catch (error) {
-        return res.render('login', { error: 'Internal server error' });
+        return res.status(500).json({ code: 0, message: 'Internal server error' })
     }
 })
 
@@ -146,7 +138,6 @@ router.get('/verify-email', async (req, res) => {
         }
         User.updateOne({ _id: decoded.user._id }, { $set: { is_verified: true } })
             .then(result => {
-                console.log(result)
                 // If the user was found and updated successfully
                 if (result.modifiedCount > 0) {
                     res.render('message', { message: 'Email verified successfully!' });
@@ -164,12 +155,15 @@ router.post('/logout', async (req, res) => {
     if (token) {
         res.clearCookie('token');
     }
-    res.redirect('/login')
+    return res.status(200).json({ code: 1, message: 'Logout successfully' });
+
+    // res.redirect('/api/login')
 })
 
 // Protected route
 router.get('/profile', middleware.verifyToken, (req, res) => {
-    res.render('userProfile', { user: req.user });
+    const message = 'User profile retrieved successfully';
+    res.status(200).json({ message: message, user: req.user });  // Send JSON response with message
 });
 
 // Update user profile route

@@ -20,9 +20,12 @@
 
 <body>
     <div class="container">
+        <div id="myAlert" class="alert alert-danger d-none mt-2" role="alert">
+
+        </div>
         <div class="form-container shadow">
             <h1 class="text-center">Login</h1>
-            <form id="registerForm" action="/api/login" method="POST" novalidate>
+            <form id="loginForm" action="/api/login" method="POST" novalidate>
                 <div class="form-group">
                     <label for="email">Email:</label>
                     <input type="email" class="form-control" id="email" name="email" required>
@@ -36,14 +39,9 @@
                         lowercase letter, one number, and one special character.
                     </div>
                 </div>
-                <% if(error){ %>
-                    <div id="myAlert" class="alert alert-danger" role="alert">
-                        <%= error %>
-                    </div>
-                    <% } %>
-                        <button type="submit" class="btn btn-primary btn-block">Login</button>
+                <button type="submit" class="btn btn-primary btn-block">Login</button>
             </form>
-            <p>If you do not have an account, please <a href="/">register</a>.</p>
+            <p>If you do not have an account, please <a href="/api/signup">Register</a>.</p>
 
         </div>
     </div>
@@ -54,22 +52,73 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <!-- Client-side validation -->
     <script>
-        // Wait for the DOM to be fully loaded
-        document.addEventListener('DOMContentLoaded', function () {
-            // Select the alert element
-            var alert = document.getElementById('myAlert');
 
-            // Use setTimeout to hide the alert after 5 seconds
-            setTimeout(function () {
-                alert.style.display = 'none';
-            }, 2000); // 5000 milliseconds = 5 seconds
+        document.getElementById('loginForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            // Construct FormData object from form data
+            const formData = new FormData(document.getElementById('loginForm'));
+
+            // Create an object from formData entries
+            const formDataObject = {};
+            for (const [key, value] of formData.entries()) {
+                formDataObject[key] = value;
+            }
+
+            // Make POST request to /api/login endpoint
+            fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formDataObject)
+            })
+                .then(response => {
+                    return response.json(); // assuming server responds with text
+                })
+                .then(data => {
+                    // Display success message or handle response data
+                    if (data.code != 1) {
+                        $('#myAlert').removeClass('d-none').addClass('alert-danger').text(data.message);
+                        // Show the alert for 2 seconds
+                        setTimeout(function () {
+                            $('#myAlert').addClass('d-none').removeClass('alert-danger').text('');
+                        }, 5000);
+                    } else {
+                        fetch('/api/profile', {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        })
+                            .then(response => {
+                                return response.json(); // assuming server responds with text
+                            })
+                            .then(data => {
+                                window.location.href = '/profile'
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                // Handle error scenario, e.g., show error message to user
+                                alert('Error registering user. Please try again later.');
+                            });
+
+
+                        // window.location.href = '/api/profile'
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Handle error scenario, e.g., show error message to user
+                    alert('Error registering user. Please try again later.');
+                });
         });
 
         (function () {
             'use strict';
             window.addEventListener('load', function () {
                 // Fetch the form element
-                var form = document.getElementById('registerForm');
+                var form = document.getElementById('loginForm');
                 form.addEventListener('submit', function (event) {
                     if (!form.checkValidity()) {
                         event.preventDefault();
