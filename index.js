@@ -7,9 +7,8 @@ const path = require('path');
 const middleware = require('./middleware/validations')
 const cookieParser = require('cookie-parser');
 
-
-app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
+app.use(express.json())
 app.use(cookieParser());
 // Set the view engine to ejs
 app.set('view engine', 'ejs');
@@ -23,10 +22,7 @@ app.get('/', (req, res) => {
 app.get('/login', (req, res) => {
     res.render('login', { error: null })
 })
-// Protected route
-app.get('/userProfile', middleware.verifyToken, (req, res) => {
-    res.render('userProfile', { user: req.user });
-});
+
 const user = require('./routes/user')
 app.use('/api', user)
 

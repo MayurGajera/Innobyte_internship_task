@@ -20,7 +20,15 @@
         <div class="collapse navbar-collapse">
             <ul class="navbar-nav ml-auto">
                 <li class="nav-item">
-                    <a class="nav-link text-primary" href="/api/logout">Logout</a>
+                    <form action="/api/logout" method="post">
+                        <!-- Optional CSRF token if your backend requires CSRF protection -->
+                        <!-- Replace with your actual CSRF token handling -->
+                        <input type="hidden" name="_csrf" value="your_csrf_token_here">
+
+                        <button type="submit" class="nav-link text-primary"
+                            style="background:none; border:none;">Logout</button>
+                    </form>
+
                 </li>
             </ul>
         </div>
@@ -28,16 +36,97 @@
 
     <!-- User Information Section -->
     <div class="container mt-5">
+        <div id="myAlert" class="alert alert-danger d-none" role="alert">
+
+        </div>
         <h1>User Information</h1>
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Name: <%= user.firstName %>
+                <h5 class="card-title" id="userName">Name: <%= user.firstName %>
                         <%= user.lastName %>
                 </h5>
-                <p class="card-text">Email: <%= user.email %>
+                <p class="card-text" id="useEmail">Email: <%= user.email %>
                 </p>
                 <p class="card-text">Account Verified: <%= user.is_verified ? 'Yes' : 'No' %>
                 </p>
+                <!-- Edit Profile Button -->
+                <button type="button" class="btn btn-primary mr-2" id="editProfileButton" data-toggle="modal"
+                    data-target="#editProfileModal">Edit</button>
+                <!-- Change Password Button -->
+                <button type="button" class="btn btn-secondary" id="changePasswordButton" data-toggle="modal"
+                    data-target="#changePasswordModal">Change Password</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div class="modal fade" id="editProfileModal" tabindex="-1" role="dialog" aria-labelledby="editProfileModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Form to edit profile -->
+                    <form id="editProfileForm">
+                        <div class="form-group">
+                            <label for="firstName">First Name</label>
+                            <input type="text" class="form-control" id="firstName" name="firstName"
+                                value="<%= user.firstName %>" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="lastName">Last Name</label>
+                            <input type="text" class="form-control" id="lastName" name="lastName"
+                                value="<%= user.lastName %>" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" value="<%= user.email %>"
+                                required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Change Password Modal -->
+    <div class="modal fade" id="changePasswordModal" tabindex="-1" role="dialog"
+        aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="changePasswordModalLabel">Change Password</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Form to change password -->
+                    <form id="changePasswordForm" novalidate>
+                        <div class="form-group">
+                            <label for="newPassword">New Password</label>
+                            <input type="password" class="form-control" id="newPassword" name="newPassword" required>
+                            <div class="invalid-feedback">
+                                Password must be at least 8 characters long, contain at least one uppercase letter, one
+                                lowercase letter, one number, and one special character.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirmPassword" name="confirmPassword"
+                                required>
+                            <div class="invalid-feedback">
+                                Passwords do not match.
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Change Password</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -45,6 +134,148 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <!-- JavaScript to handle form submission and modal behavior -->
+    <script>
+        $(document).ready(function () {
+            // Function to retrieve user data from cookie
+            function getUserFromCookie() {
+                var cookieValue = document.cookie
+                    .split('; ')
+                    .find(row => row.startsWith('user='))
+                    .split('=')[1];
+
+                return JSON.parse(cookieValue);
+            }
+
+            // When edit button is clicked, populate form fields with user data from cookie
+            $('#editProfileButton').click(function () {
+                var userData = getUserFromCookie();
+
+                // Populate form fields with user data
+                $('#firstName').val(userData.firstName);
+                $('#lastName').val(userData.lastName);
+                $('#email').val(userData.email);
+            });
+
+            // Change Password Modal
+            $('#changePasswordButton').click(function () {
+                // Clear previous values
+                $('#newPassword').val('');
+                $('#confirmPassword').val('');
+                // Reset form validation
+                $('#changePasswordForm').removeClass('was-validated');
+            });
+
+            // Handle form submission for Edit Profile
+            $('#editProfileForm').submit(function (event) {
+                event.preventDefault();
+                var updatedData = {
+                    firstName: $('#firstName').val(),
+                    lastName: $('#lastName').val(),
+                    email: $('#email').val(),
+                };
+                // Send updated data to server
+                fetch('/api/update_profile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatedData)
+                }).then(response => {
+                    // Check if response is successful (status code 200-299)
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    // Parse response body as JSON
+                    return response.json();
+                }).then(data => {
+                    // Handle successful response data here
+                    console.log('Success:', data);
+
+                    // Example: Set data into cookie and update user profile UI
+                    document.cookie = `user=${JSON.stringify(data.user)}; path=/`;
+                    $('#userName').text(`Name: ${data.user.firstName} ${data.user.lastName}`);
+                    $('#useEmail').text(`Email: ${data.user.email}`);
+                    $('#firstName').val(data.user.firstName);
+                    $('#lastName').val(data.user.lastName);
+                    $('#email').val(data.user.email);
+                    // Additional updates as needed
+
+                    // Update user data in cookie
+                    document.cookie = `user=${JSON.stringify(data.user)}; path=/`;
+
+                }).catch(error => {
+                    console.error('Error updating profile:', error);
+                    // Handle errors here
+                });
+
+                $('#editProfileModal').modal('hide');
+            });
+
+            // Handle form submission for Change Password
+            $('#changePasswordForm').submit(function (event) {
+                event.preventDefault();
+                if (this.checkValidity() === false) {
+                    event.stopPropagation();
+                } else {
+                    var newPassword = $('#newPassword').val();
+                    var confirmPassword = $('#confirmPassword').val();
+
+                    // Regular expression to validate password
+                    var passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+
+                    if (!passwordRegex.test(newPassword)) {
+                        $('#newPassword').addClass('is-invalid');
+                        $('#newPassword').next('.invalid-feedback').html('Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character.');
+                        return;
+                    } else {
+                        $('#newPassword').removeClass('is-invalid');
+                    }
+
+                    if (newPassword !== confirmPassword) {
+                        $('#confirmPassword').addClass('is-invalid');
+                        $('#confirmPassword').next('.invalid-feedback').html('Passwords do not match.');
+                        return;
+                    } else {
+                        $('#confirmPassword').removeClass('is-invalid');
+                    }
+
+
+                    // Send updated data to server
+                    fetch('/api/change_password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ newPassword: newPassword })
+                    }).then(response => {
+                        // Parse response body as JSON
+                        return response.json();
+                    }).then(data => {
+                        // Handle successful response data here
+                        console.log('Success:', data);
+                        // Update the content of the alert with the received message
+                        $('#myAlert').removeClass('d-none').addClass('alert-danger').text(data.message);
+
+                        // Show the alert for 2 seconds
+                        setTimeout(function () {
+                            $('#myAlert').addClass('d-none').removeClass('alert-danger').text('');
+                        }, 2000);
+
+                    }).catch(error => {
+                        console.log('Error updating profile:', error);
+                        // Handle errors here
+                    });
+
+                    // Close modal
+                    $('#changePasswordModal').modal('hide');
+                }
+                $(this).addClass('was-validated');
+            });
+        });
+    </script>
 </body>
 
 </html>

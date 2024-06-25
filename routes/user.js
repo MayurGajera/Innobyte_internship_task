@@ -6,8 +6,6 @@ const jwt = require('jsonwebtoken')
 const nodemailer = require('nodemailer');
 const ejs = require('ejs');
 const path = require('path');
-const cookieParser = require('cookie-parser');
-
 
 // Configure NodeMailer transporter
 const transporter = nodemailer.createTransport({
@@ -44,8 +42,6 @@ async function sendConfirmationEmail(user) {
         }
     });
 }
-
-
 
 
 router.post('/register', async (req, res) => {
@@ -130,7 +126,7 @@ router.post('/login', async (req, res) => {
         const token = jwt.sign({ user: existingUser }, process.env.JWTSECRETKEY, { expiresIn: '1h' })
         // const decoded = jwt.verify(token, process.env.JWTSECRETKEY);
         res.cookie('token', token, { httpOnly: true });
-        res.redirect('/userProfile');
+        res.redirect('/api/profile');
         // res.render('userProfile', { user: decoded.user });
 
     } catch (error) {
@@ -144,12 +140,10 @@ router.get('/verify-email', async (req, res) => {
     if (!token) {
         return res.render('message', { message: 'Invalid token' });
     }
-
     jwt.verify(token, process.env.JWTSECRETKEY, (err, decoded) => {
         if (err) {
             return res.render('message', { message: 'Invalid or expired token' });
         }
-
         User.updateOne({ _id: decoded.user._id }, { $set: { is_verified: true } })
             .then(result => {
                 console.log(result)
@@ -165,7 +159,7 @@ router.get('/verify-email', async (req, res) => {
     })
 })
 
-router.get('/logout', async (req, res) => {
+router.post('/logout', async (req, res) => {
     const token = req.cookies.token;
     if (token) {
         res.clearCookie('token');
@@ -173,6 +167,93 @@ router.get('/logout', async (req, res) => {
     res.redirect('/login')
 })
 
+// Protected route
+router.get('/profile', middleware.verifyToken, (req, res) => {
+    res.render('userProfile', { user: req.user });
+});
+
+// Update user profile route
+router.post('/update_profile', middleware.verifyToken, async (req, res) => {
+    try {
+        const { firstName, lastName, email } = req.body;
+        const userId = req.user._id; // Extract user ID from decoded token
+
+        // Options for findOneAndUpdate
+        const options = {
+            new: true, // Return the updated document
+            runValidators: true // Run validators on update, to ensure new data meets schema requirements
+        };
+
+        // Find one user by ID and update
+        const updatedUser = await User.findOneAndUpdate(
+            { _id: userId },
+            { firstName, lastName, email },
+            options
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Generate a new JWT token
+        const token = jwt.sign({ user: updatedUser }, process.env.JWTSECRETKEY, { expiresIn: '1h' });
+
+        // Set the new token in the response cookie
+        res.cookie('token', token, { httpOnly: true });
+
+        // Respond with updated user data
+        res.status(200).json({ message: 'User updated successfully', user: updatedUser });
+    } catch (error) {
+        console.error('Error updating user:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Change password
+router.post('/change_password', middleware.verifyToken, async (req, res) => {
+    try {
+        const { newPassword } = req.body;
+        const userId = req.user._id; // Extract user ID from decoded token
+
+        // Retrieve the user from the database
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ code: 0, message: 'User not found' });
+        }
+
+        // Compare new password with the current password
+        const isMatch = await bcrypt.compare(newPassword, user.password);
+
+        if (isMatch) {
+            return res.status(400).json({ code: 0, message: 'New password must be different from the current password' });
+        }
+
+        // If passwords are different, proceed with password update
+        const salt = await bcrypt.genSalt(Number(10));
+        const hashPassword = await bcrypt.hash(newPassword, salt);
+
+        // Options for findOneAndUpdate
+        const options = {
+            new: true,
+            runValidators: true
+        };
+
+        // Update the user's password
+        const updatedUser = await User.findOneAndUpdate(
+            { _id: userId },
+            { password: hashPassword },
+            options
+        );
+
+        // Respond with success message
+        res.status(200).json({ code: 1, message: 'User Password Changed successfully' });
+
+    } catch (error) {
+        console.error('Error updating user password:', error);
+        res.status(500).json({ code: 0, message: 'Internal server error' });
+    }
+});
 
 
 module.exports = router;
